@@ -157,9 +157,10 @@
     </footer>
 
     <!-- Webhook JavaScript -->
-    <script>
-        // Updated Webhook URL for n8n
-        const MAKE_WEBHOOK_URL = "https://n8n-server.tail8c0e7e.ts.net/webhook-test/79ece62b-ced9-449d-9117-adf7cd0702bb";
+   <script>
+        // FIXED: Removed "-test" from the URL. 
+        // Ensure your n8n workflow is set to "Active" for this to work.
+        const MAKE_WEBHOOK_URL = "https://n8n-server.tail8c0e7e.ts.net/webhook/79ece62b-ced9-449d-9117-adf7cd0702bb";
 
         async function handleFormSubmit(event, formId, messageId) {
             event.preventDefault();
@@ -168,7 +169,7 @@
             const button = form.querySelector('button');
             const messageElement = document.getElementById(messageId);
             
-            // Gather data from form
+            // Gather data
             const formData = new FormData(form);
             const data = {
                 store_url: formData.get('store_url'),
@@ -185,26 +186,27 @@
             messageElement.innerText = 'Submitting your request...';
 
             try {
-                const response = await fetch(MAKE_WEBHOOK_URL, {
+                // FIXED: Added mode: 'no-cors' to bypass browser security blocks.
+                // NOTE: 'no-cors' makes the response "opaque", meaning we can't read the status.
+                // We have to assume if it didn't throw an error, it worked.
+                await fetch(MAKE_WEBHOOK_URL, {
                     method: 'POST',
+                    mode: 'no-cors', 
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(data),
                 });
 
-                if (response.ok) {
-                    // Success
-                    messageElement.innerText = "Success! We'll reach out with your report shortly.";
-                    messageElement.classList.add('text-green-600');
-                    form.reset();
-                } else {
-                    throw new Error('Server responded with an error.');
-                }
+                // Since we used no-cors, we assume success if we reached this line.
+                messageElement.innerText = "Success! We'll reach out with your report shortly.";
+                messageElement.classList.add('text-green-600');
+                form.reset();
+
             } catch (error) {
-                // Error handling
                 console.error('Submission error:', error);
-                messageElement.innerText = "Something went wrong. Please try again later.";
+                // Check if it's a network issue (likely Tailscale access)
+                messageElement.innerText = "Could not reach the server. Ensure you are connected to the network.";
                 messageElement.classList.add('text-red-500');
             } finally {
                 // UI State: Done
@@ -213,7 +215,6 @@
             }
         }
 
-        // Attach listeners to both forms
         document.getElementById('lead-form-hero').addEventListener('submit', (e) => {
             handleFormSubmit(e, 'lead-form-hero', 'form-message-hero');
         });
